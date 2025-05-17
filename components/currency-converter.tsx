@@ -30,6 +30,7 @@ export function CurrencyConverter() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [rates, setRates] = useState<Record<string, number>>({})
   const [error, setError] = useState<string | null>(null)
+  const [fee, setFee] = useState<string>("0")
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -76,7 +77,11 @@ export function CurrencyConverter() {
           ? amountInUSD
           : amountInUSD * rates[toCurrency];
 
-        setResult(calculatedResult);
+        // Apply fee if present
+        const feePercentage = Number.parseFloat(fee) || 0;
+        const resultWithFee = calculatedResult * (1 - feePercentage / 100);
+
+        setResult(resultWithFee);
       } catch (err) {
         setError('Error performing conversion. Please try again.');
         console.error('Conversion error:', err);
@@ -261,12 +266,20 @@ export function CurrencyConverter() {
                     </div>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="date">Conversion date</Label>
-                    <Input id="date" type="date" defaultValue={new Date().toISOString().split("T")[0]} />
-                  </div>
-                  <div className="grid gap-2">
                     <Label htmlFor="fee">Conversion fee (%)</Label>
-                    <Input id="fee" type="number" placeholder="0" defaultValue="0" />
+                    <Input 
+                      id="fee" 
+                      type="number" 
+                      placeholder="0" 
+                      value={fee}
+                      onChange={(e) => {
+                        setFee(e.target.value)
+                        setResult(null)
+                      }}
+                      min="0"
+                      max="100"
+                      step="0.01"
+                    />
                   </div>
                 </div>
                 <Button onClick={handleConvert} disabled={isLoading}>
@@ -290,6 +303,11 @@ export function CurrencyConverter() {
               <div className="mt-1 text-2xl font-bold">
                 {Number.parseFloat(amount).toLocaleString()} {fromCurrency} ={" "}
                 {result.toLocaleString(undefined, { maximumFractionDigits: 2 })} {toCurrency}
+                {fee !== "0" && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    (including {fee}% fee)
+                  </span>
+                )}
               </div>
               <div className="mt-2 text-sm text-muted-foreground">
                 1 {fromCurrency} = {getExchangeRate(fromCurrency, toCurrency).toFixed(4)} {toCurrency}
