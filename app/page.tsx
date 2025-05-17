@@ -12,7 +12,7 @@ export default function Home() {
           <CurrencyConverter />
         </main>
         <footer className="mt-16 text-center text-sm text-gray-500">
-          <p>© 2025 Currency converter. Rates are updated every hour.</p>
+            <p>© {new Date().getFullYear()} Currency converter. Rates are updated every hour.</p>
         </footer>
       </div>
     </div>

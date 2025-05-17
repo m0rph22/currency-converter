@@ -7,11 +7,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { freeCurrencyAPI } from "@/lib/currency-api"
 
 const popularPairs = [
-  { from: "PLN", to: "EUR" },
-  { from: "PLN", to: "USD" },
+  { from: "EUR", to: "PLN" },
+  { from: "USD", to: "PLN" },
+  { from: "EUR", to: "CZK" },
+  { from: "USD", to: "CZK" },
 ]
 
-export function CurrencyRates() {
+interface CurrencyRatesProps {
+  onSelectCurrencyPair?: (from: string, to: string) => void;
+}
+
+export function CurrencyRates({ onSelectCurrencyPair }: CurrencyRatesProps) {
   const [rates, setRates] = useState<Record<string, number>>({});
   const [previousRates, setPreviousRates] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +38,12 @@ export function CurrencyRates() {
         
         // Add USD rate (1 since it's the base currency)
         const newRates = { ...response.data, USD: 1 };
-        setPreviousRates(rates);
+        
+        // Only update previous rates if we already have current rates
+        if (Object.keys(rates).length > 0) {
+          setPreviousRates(rates);
+        }
+        
         setRates(newRates);
         setError(null);
       } catch (err) {
@@ -54,8 +65,11 @@ export function CurrencyRates() {
     if (!rates || Object.keys(rates).length === 0) return 0;
     if (!(from in rates) || !(to in rates)) return 0;
     
+    // Convert through USD (our base currency)
     if (from === 'USD') return rates[to];
     if (to === 'USD') return 1 / rates[from];
+    
+    // Cross rate calculation
     return rates[to] / rates[from];
   };
 
@@ -64,9 +78,11 @@ export function CurrencyRates() {
     if (!rates || Object.keys(rates).length === 0) return 0;
     if (!(from in rates) || !(to in rates) || !(from in previousRates) || !(to in previousRates)) return 0;
     
-    const oldRate = from === 'USD' ? previousRates[to] : previousRates[to] / previousRates[from];
+    const oldRate = calculateRate(from, to);
     const newRate = calculateRate(from, to);
-    return newRate - oldRate;
+    
+    // Calculate percentage change
+    return ((newRate - oldRate) / oldRate) * 100;
   };
 
   return (
@@ -107,15 +123,15 @@ export function CurrencyRates() {
                       </div>
                       <div className="flex items-center">
                         <div className="mr-2 font-semibold">{rate.toFixed(4)}</div>
-                        <div className={`flex items-center text-xs ${change > 0 ? "text-green-500" : "text-red-500"}`}>
-                          {change !== 0 && (
+                        <div className={`flex items-center text-xs ${Math.abs(change) > 0.0001 ? (change > 0 ? "text-green-500" : "text-red-500") : "text-muted-foreground"}`}>
+                          {Math.abs(change) > 0.0001 && (
                             <>
                               {change > 0 ? (
                                 <TrendingUp className="mr-1 h-3 w-3" />
                               ) : (
                                 <TrendingDown className="mr-1 h-3 w-3" />
                               )}
-                              {Math.abs(change).toFixed(4)}
+                              {Math.abs(change).toFixed(2)}%
                             </>
                           )}
                         </div>
@@ -135,10 +151,11 @@ export function CurrencyRates() {
         <div className="mt-6">
           <h3 className="mb-2 text-sm font-medium">Popular conversions</h3>
           <div className="grid grid-cols-2 gap-2">
-            {popularPairs.slice(0, 4).map((pair, index) => (
+            {popularPairs.map((pair, index) => (
               <button
                 key={index}
-                className="rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
+                onClick={() => onSelectCurrencyPair?.(pair.from, pair.to)}
+                className="rounded-md cursor-pointer border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
               >
                 {pair.from} → {pair.to}
               </button>

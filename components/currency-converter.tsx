@@ -20,6 +20,7 @@ const currencies = [
   { code: "AUD", name: "Australian Dollar" },
   { code: "CAD", name: "Canadian Dollar" },
   { code: "PLN", name: "Polish Zloty" },
+  { code: "CZK", name: "Czech Koruna" },
 ]
 
 export function CurrencyConverter() {
@@ -119,7 +120,16 @@ export function CurrencyConverter() {
               {error}
             </div>
           )}
-          <Tabs defaultValue="simple" className="w-full">
+          <Tabs 
+            defaultValue="simple" 
+            className="w-full"
+            onValueChange={(value) => {
+              if (value === "simple") {
+                setFee("0");
+                setResult(null);
+              }
+            }}
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="simple">Simple</TabsTrigger>
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
@@ -303,7 +313,7 @@ export function CurrencyConverter() {
               <div className="mt-1 text-2xl font-bold">
                 {Number.parseFloat(amount).toLocaleString()} {fromCurrency} ={" "}
                 {result.toLocaleString(undefined, { maximumFractionDigits: 2 })} {toCurrency}
-                {fee !== "0" && (
+                {fee !== "0" && Number(fee) > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
                     (including {fee}% fee)
                   </span>
@@ -317,7 +327,13 @@ export function CurrencyConverter() {
         </CardFooter>
       </Card>
       <div>
-        <CurrencyRates />
+        <CurrencyRates 
+          onSelectCurrencyPair={(from, to) => {
+            setFromCurrency(from);
+            setToCurrency(to);
+            setResult(null);
+          }} 
+        />
       </div>
     </div>
   )
