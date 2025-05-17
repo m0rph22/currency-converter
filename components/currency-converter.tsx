@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowRightLeft, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,49 +9,81 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CurrencyRates } from "@/components/currency-rates"
+import { freeCurrencyAPI } from "@/lib/currency-api"
 
 const currencies = [
-  { code: "UAH", name: "Ukrainian Hryvnia" },
   { code: "USD", name: "U.S. Dollar" },
   { code: "EUR", name: "Euro" },
   { code: "GBP", name: "British Pound" },
-  { code: "JPY", name: "Japanese Yen" },
   { code: "CNY", name: "Chinese Yuan" },
   { code: "CHF", name: "Swiss Franc" },
   { code: "AUD", name: "Australian Dollar" },
   { code: "CAD", name: "Canadian Dollar" },
+  { code: "PLN", name: "Polish Zloty" },
 ]
-
-const rates = {
-  UAH: 2,
-  USD: 92.5,
-  EUR: 100.2,
-  GBP: 117.8,
-  JPY: 0.61,
-  CNY: 12.8,
-  CHF: 104.5,
-  AUD: 61.2,
-  CAD: 68.3,
-}
 
 export function CurrencyConverter() {
   const [amount, setAmount] = useState<string>("1")
-  const [fromCurrency, setFromCurrency] = useState<string>("UAH")
+  const [fromCurrency, setFromCurrency] = useState<string>("EUR")
   const [toCurrency, setToCurrency] = useState<string>("USD")
   const [result, setResult] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [rates, setRates] = useState<Record<string, number>>({})
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        // Get unique currencies excluding USD (base currency)
+        const uniqueCurrencies = currencies
+          .map(curr => curr.code)
+          .filter(curr => curr !== 'USD');
+
+        const response = await freeCurrencyAPI.latest({
+          base_currency: 'USD',
+          currencies: uniqueCurrencies.join(',')
+        });
+
+        // Add USD rate (1 since it's the base currency)
+        setRates({ ...response.data, USD: 1 });
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching rates:', err);
+        setError('Failed to fetch currency rates. Please try again later.');
+      }
+    };
+
+    fetchRates();
+  }, []);
 
   const handleConvert = () => {
-    setIsLoading(true)
+    if (!rates || Object.keys(rates).length === 0) {
+      setError('Currency rates are not available. Please try again later.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
 
     setTimeout(() => {
-      const fromRate = rates[fromCurrency as keyof typeof rates]
-      const toRate = rates[toCurrency as keyof typeof rates]
-      const calculatedResult = (Number.parseFloat(amount) * fromRate) / toRate
+      try {
+        // Convert through USD as base currency
+        const amountInUSD = fromCurrency === 'USD'
+          ? Number.parseFloat(amount)
+          : Number.parseFloat(amount) / rates[fromCurrency];
+        
+        const calculatedResult = toCurrency === 'USD'
+          ? amountInUSD
+          : amountInUSD * rates[toCurrency];
 
-      setResult(calculatedResult)
-      setIsLoading(false)
-    }, 500)
+        setResult(calculatedResult);
+      } catch (err) {
+        setError('Error performing conversion. Please try again.');
+        console.error('Conversion error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 500);
   }
 
   const handleSwap = () => {
@@ -59,6 +91,15 @@ export function CurrencyConverter() {
     setToCurrency(fromCurrency)
     setResult(null)
   }
+
+  const getExchangeRate = (from: string, to: string): number => {
+    if (!rates || Object.keys(rates).length === 0) return 0;
+    if (!(from in rates) || !(to in rates)) return 0;
+    
+    if (from === 'USD') return rates[to];
+    if (to === 'USD') return 1 / rates[from];
+    return rates[to] / rates[from];
+  };
 
   return (
     <div className="grid gap-8 md:grid-cols-3">
@@ -68,6 +109,11 @@ export function CurrencyConverter() {
           <CardDescription>Enter the amount and select currencies to convert</CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 rounded-lg bg-red-100 p-4 text-red-700">
+              {error}
+            </div>
+          )}
           <Tabs defaultValue="simple" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="simple">Simple</TabsTrigger>
@@ -246,9 +292,7 @@ export function CurrencyConverter() {
                 {result.toLocaleString(undefined, { maximumFractionDigits: 2 })} {toCurrency}
               </div>
               <div className="mt-2 text-sm text-muted-foreground">
-                1 {fromCurrency} ={" "}
-                {(rates[fromCurrency as keyof typeof rates] / rates[toCurrency as keyof typeof rates]).toFixed(4)}{" "}
-                {toCurrency}
+                1 {fromCurrency} = {getExchangeRate(fromCurrency, toCurrency).toFixed(4)} {toCurrency}
               </div>
             </div>
           )}
