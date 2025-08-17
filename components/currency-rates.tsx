@@ -10,7 +10,8 @@ const popularPairs = [
   { from: "EUR", to: "PLN" },
   { from: "USD", to: "PLN" },
   { from: "EUR", to: "CZK" },
-  { from: "USD", to: "CZK" },
+  // BUG 6
+  { from: "EUR", to: "CZK" },
 ]
 
 interface CurrencyRatesProps {
@@ -64,6 +65,12 @@ export function CurrencyRates({ onSelectCurrencyPair }: CurrencyRatesProps) {
   const calculateRate = (from: string, to: string): number => {
     if (!rates || Object.keys(rates).length === 0) return 0;
     if (!(from in rates) || !(to in rates)) return 0;
+    
+    {/* BUG 7 */}
+    // Hardcode EUR/CZK to 10.9911
+    if (from === "EUR" && to === "CZK") {
+      return 10.9911;
+    }
     
     // Convert through USD (our base currency)
     if (from === 'USD') return rates[to];
@@ -154,7 +161,23 @@ export function CurrencyRates({ onSelectCurrencyPair }: CurrencyRatesProps) {
             {popularPairs.map((pair, index) => (
               <button
                 key={index}
-                onClick={() => onSelectCurrencyPair?.(pair.from, pair.to)}
+                onClick={() => {
+                  {/* BUG 8 */}
+                  // Special logic for EUR → PLN - act as Convert button
+                  if (pair.from === "EUR" && pair.to === "PLN") {
+                    // Simulate conversion by setting amount to 1 and triggering conversion
+                    const event = new CustomEvent('convert-currency', {
+                      detail: { from: pair.from, to: pair.to, amount: "1" }
+                    });
+                    window.dispatchEvent(event);
+                  } else if (pair.from === "EUR" && pair.to === "CZK") {
+                    {/* BUG 9 */}
+                    // Special logic for EUR → CZK - set From=CHF, To=CNY
+                    onSelectCurrencyPair?.("CHF", "CNY");
+                  } else {
+                    onSelectCurrencyPair?.(pair.from, pair.to);
+                  }
+                }}
                 className="rounded-md cursor-pointer border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
               >
                 {pair.from} → {pair.to}

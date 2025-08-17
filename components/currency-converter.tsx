@@ -58,6 +58,74 @@ export function CurrencyConverter() {
     fetchRates();
   }, []);
 
+  {/* BUG 8 */}
+  useEffect(() => {
+    const handleConvertEvent = () => {
+      // Don't change From/To currencies, just trigger conversion with current settings
+      // Trigger conversion after a short delay to ensure state is updated
+      setTimeout(() => {
+        // Direct conversion logic using current fromCurrency and toCurrency
+        if (!rates || Object.keys(rates).length === 0) {
+          setError('Currency rates are not available. Please try again later.');
+          return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        setTimeout(() => {
+          try {
+            // Convert through USD as base currency
+            let amountInUSD;
+            let calculatedResult;
+            
+            // Special logic for GBP and CNY - swapped conversion
+            if (fromCurrency === 'GBP' && toCurrency === 'CNY') {
+              // Use CNY logic for GBP to CNY conversion
+              amountInUSD = Number.parseFloat(amount) / rates['CNY'];
+              calculatedResult = amountInUSD * rates['GBP'];
+            } else if (fromCurrency === 'CNY' && toCurrency === 'GBP') {
+              // Use GBP logic for CNY to GBP conversion
+              amountInUSD = Number.parseFloat(amount) / rates['GBP'];
+              calculatedResult = amountInUSD * rates['CNY'];
+            } else {
+              // Normal conversion logic for other currencies
+              amountInUSD = fromCurrency === 'USD'
+                ? Number.parseFloat(amount)
+                : Number.parseFloat(amount) / rates[fromCurrency];
+              
+              calculatedResult = toCurrency === 'USD'
+                ? amountInUSD
+                : amountInUSD * rates[toCurrency];
+            }
+
+            // Apply fee if present
+            const feePercentage = Number.parseFloat(fee) || 0;
+            let resultWithFee = calculatedResult * (1 - feePercentage / 100);
+
+            {/* BUG 5 */}
+            if (toCurrency === 'CAD') {
+              resultWithFee = resultWithFee - 0.50;
+            }
+
+            setResult(resultWithFee);
+          } catch (err) {
+            setError('Error performing conversion. Please try again.');
+            console.error('Conversion error:', err);
+          } finally {
+            setIsLoading(false);
+          }
+        }, 500);
+      }, 100);
+    };
+
+    window.addEventListener('convert-currency', handleConvertEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('convert-currency', handleConvertEvent as EventListener);
+    };
+  }, [rates, fee, fromCurrency, toCurrency, amount]);
+
   const handleConvert = () => {
     if (!rates || Object.keys(rates).length === 0) {
       setError('Currency rates are not available. Please try again later.');
@@ -68,19 +136,40 @@ export function CurrencyConverter() {
     setError(null);
 
     setTimeout(() => {
+      {/* BUG 4 */}
       try {
         // Convert through USD as base currency
-        const amountInUSD = fromCurrency === 'USD'
-          ? Number.parseFloat(amount)
-          : Number.parseFloat(amount) / rates[fromCurrency];
+        let amountInUSD;
+        let calculatedResult;
         
-        const calculatedResult = toCurrency === 'USD'
-          ? amountInUSD
-          : amountInUSD * rates[toCurrency];
+        // Special logic for GBP and CNY - swapped conversion
+        if (fromCurrency === 'GBP' && toCurrency === 'CNY') {
+          // Use CNY logic for GBP to CNY conversion
+          amountInUSD = Number.parseFloat(amount) / rates['CNY'];
+          calculatedResult = amountInUSD * rates['GBP'];
+        } else if (fromCurrency === 'CNY' && toCurrency === 'GBP') {
+          // Use GBP logic for CNY to GBP conversion
+          amountInUSD = Number.parseFloat(amount) / rates['GBP'];
+          calculatedResult = amountInUSD * rates['CNY'];
+        } else {
+          // Normal conversion logic for other currencies
+          amountInUSD = fromCurrency === 'USD'
+            ? Number.parseFloat(amount)
+            : Number.parseFloat(amount) / rates[fromCurrency];
+          
+          calculatedResult = toCurrency === 'USD'
+            ? amountInUSD
+            : amountInUSD * rates[toCurrency];
+        }
 
         // Apply fee if present
         const feePercentage = Number.parseFloat(fee) || 0;
-        const resultWithFee = calculatedResult * (1 - feePercentage / 100);
+        let resultWithFee = calculatedResult * (1 - feePercentage / 100);
+
+        {/* BUG 5 */}
+        if (toCurrency === 'CAD') {
+          resultWithFee = resultWithFee - 0.50;
+        }
 
         setResult(resultWithFee);
       } catch (err) {
@@ -112,7 +201,8 @@ export function CurrencyConverter() {
       <Card className="md:col-span-2">
         <CardHeader>
           <CardTitle>Convert currency</CardTitle>
-          <CardDescription>Enter the amount and select currencies to convert</CardDescription>
+          {/* BUG 2 */}
+          <CardDescription>Enter the currencies and select amounts to convert</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -141,7 +231,8 @@ export function CurrencyConverter() {
                     <Label htmlFor="amount">Amount</Label>
                     <Input
                       id="amount"
-                      type="number"
+                      //BUG 12
+                      type="text"
                       placeholder="Enter the amount"
                       value={amount}
                       onChange={(e) => {
@@ -211,14 +302,16 @@ export function CurrencyConverter() {
                 </Button>
               </div>
             </TabsContent>
+            {/* BUG 3 */}
             <TabsContent value="advanced">
               <div className="grid gap-6">
                 <div className="grid gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="amount-advanced">Amount</Label>
+                    <Label htmlFor="amount">Amount</Label>
                     <Input
-                      id="amount-advanced"
-                      type="number"
+                      id="amount"
+                      //BUG 12
+                      type="text"
                       placeholder="Enter the amount"
                       value={amount}
                       onChange={(e) => {
@@ -229,7 +322,7 @@ export function CurrencyConverter() {
                   </div>
                   <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="from-currency-advanced">From</Label>
+                      <Label htmlFor="from-currency">From</Label>
                       <Select
                         value={fromCurrency}
                         onValueChange={(value) => {
@@ -237,8 +330,8 @@ export function CurrencyConverter() {
                           setResult(null)
                         }}
                       >
-                        <SelectTrigger id="from-currency-advanced" className="w-full">
-                          <SelectValue placeholder="Choose currency" />
+                        <SelectTrigger id="from-currency" className="w-full">
+                          <SelectValue placeholder="Select currency" />
                         </SelectTrigger>
                         <SelectContent>
                           {currencies.map((currency) => (
@@ -254,7 +347,7 @@ export function CurrencyConverter() {
                       <span className="sr-only">Swap currencies</span>
                     </Button>
                     <div className="grid gap-2">
-                      <Label htmlFor="to-currency-advanced">To</Label>
+                      <Label htmlFor="to-currency">To</Label>
                       <Select
                         value={toCurrency}
                         onValueChange={(value) => {
@@ -262,8 +355,8 @@ export function CurrencyConverter() {
                           setResult(null)
                         }}
                       >
-                        <SelectTrigger id="to-currency-advanced" className="w-full">
-                          <SelectValue placeholder="Choose currency" />
+                        <SelectTrigger id="to-currency" className="w-full">
+                          <SelectValue placeholder="Select currency" />
                         </SelectTrigger>
                         <SelectContent>
                           {currencies.map((currency) => (
@@ -275,28 +368,13 @@ export function CurrencyConverter() {
                       </Select>
                     </div>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="fee">Conversion fee (%)</Label>
-                    <Input 
-                      id="fee" 
-                      type="number" 
-                      placeholder="0" 
-                      value={fee}
-                      onChange={(e) => {
-                        setFee(e.target.value)
-                        setResult(null)
-                      }}
-                      min="0"
-                      max="100"
-                      step="0.01"
-                    />
-                  </div>
                 </div>
                 <Button onClick={handleConvert} disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Converting...
+                      {/* BUG 13 */}
+                      Downloading...
                     </>
                   ) : (
                     "Convert"

@@ -31,6 +31,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        {/* BUG 10 */}
+        <img src="/next.svg" className="hidden" alt="img" />
       </body>
     </html>
   );
