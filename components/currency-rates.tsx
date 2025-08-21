@@ -151,7 +151,8 @@ export function CurrencyRates({ onSelectCurrencyPair }: CurrencyRatesProps) {
           </TabsContent>
           <TabsContent value="all" className="mt-4">
             <div className="text-center text-sm text-muted-foreground">
-              Subscribe to our premium plan to view all exchange rates.
+              {/* Subscribe to our premium plan to view all exchange rates. */}
+              Will be available soon
             </div>
           </TabsContent>
         </Tabs>
