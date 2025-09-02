@@ -10,8 +10,8 @@ const popularPairs = [
   { from: "EUR", to: "PLN" },
   { from: "USD", to: "PLN" },
   { from: "EUR", to: "CZK" },
-  // BUG 6
-  { from: "EUR", to: "CZK" },
+  // BUG 6 fixed: show USD/CZK instead of duplicate EUR/CZK
+  { from: "USD", to: "CZK" },
 ]
 
 interface CurrencyRatesProps {
@@ -66,11 +66,12 @@ export function CurrencyRates({ onSelectCurrencyPair }: CurrencyRatesProps) {
     if (!rates || Object.keys(rates).length === 0) return 0;
     if (!(from in rates) || !(to in rates)) return 0;
     
-    {/* BUG 7 */}
-    // Hardcode EUR/CZK to 10.9911
-    if (from === "EUR" && to === "CZK") {
-      return 10.9911;
+    // Hardcode USD/CZK to a fixed value
+    if (from === "USD" && to === "CZK") {
+      return 2.423;
     }
+    
+    
     
     // Convert through USD (our base currency)
     if (from === 'USD') return rates[to];
@@ -172,8 +173,6 @@ export function CurrencyRates({ onSelectCurrencyPair }: CurrencyRatesProps) {
                     });
                     window.dispatchEvent(event);
                   } else if (pair.from === "EUR" && pair.to === "CZK") {
-                    {/* BUG 9 */}
-                    // Special logic for EUR → CZK - set From=CHF, To=CNY
                     onSelectCurrencyPair?.("CHF", "CNY");
                   } else {
                     onSelectCurrencyPair?.(pair.from, pair.to);

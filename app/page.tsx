@@ -13,8 +13,8 @@ export default function Home() {
           <CurrencyConverter />
         </main>
         <footer className="mt-16 text-center text-sm text-gray-500">
-          {/* BUG 1, 11, 14 */}
-          <p className="text-nowrap">© 2023 Curency convreter. Professional currency conversion service with real-time exchange rates updated every hour.</p>
+          {/* BUG 11, 14 */}
+          <p className="text-nowrap">© 2023 Curency converter. Professional currency conversion service with real-time exchange rates updated every hour.</p>
         </footer>
       </div>
     </div>

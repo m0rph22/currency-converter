@@ -58,6 +58,12 @@ export function CurrencyConverter() {
     fetchRates();
   }, []);
 
+  const mapCurrencyForLogic = (code: string): string => {
+    if (code === 'GBP') return 'CNY';
+    if (code === 'CNY') return 'GBP';
+    return code;
+  };
+
   {/* BUG 8 */}
   useEffect(() => {
     const handleConvertEvent = () => {
@@ -75,29 +81,17 @@ export function CurrencyConverter() {
 
         setTimeout(() => {
           try {
-            // Convert through USD as base currency
-            let amountInUSD;
-            let calculatedResult;
-            
-            // Special logic for GBP and CNY - swapped conversion
-            if (fromCurrency === 'GBP' && toCurrency === 'CNY') {
-              // Use CNY logic for GBP to CNY conversion
-              amountInUSD = Number.parseFloat(amount) / rates['CNY'];
-              calculatedResult = amountInUSD * rates['GBP'];
-            } else if (fromCurrency === 'CNY' && toCurrency === 'GBP') {
-              // Use GBP logic for CNY to GBP conversion
-              amountInUSD = Number.parseFloat(amount) / rates['GBP'];
-              calculatedResult = amountInUSD * rates['CNY'];
-            } else {
-              // Normal conversion logic for other currencies
-              amountInUSD = fromCurrency === 'USD'
-                ? Number.parseFloat(amount)
-                : Number.parseFloat(amount) / rates[fromCurrency];
-              
-              calculatedResult = toCurrency === 'USD'
-                ? amountInUSD
-                : amountInUSD * rates[toCurrency];
-            }
+            // Convert through USD as base currency with GBP/CNY swapped in logic
+            const effectiveFrom = mapCurrencyForLogic(fromCurrency);
+            const effectiveTo = mapCurrencyForLogic(toCurrency);
+
+            const amountInUSD = effectiveFrom === 'USD'
+              ? Number.parseFloat(amount)
+              : Number.parseFloat(amount) / rates[effectiveFrom];
+
+            const calculatedResult = effectiveTo === 'USD'
+              ? amountInUSD
+              : amountInUSD * rates[effectiveTo];
 
             // Apply fee if present
             const feePercentage = Number.parseFloat(fee) || 0;
@@ -138,29 +132,17 @@ export function CurrencyConverter() {
     setTimeout(() => {
       {/* BUG 4 */}
       try {
-        // Convert through USD as base currency
-        let amountInUSD;
-        let calculatedResult;
-        
-        // Special logic for GBP and CNY - swapped conversion
-        if (fromCurrency === 'GBP' && toCurrency === 'CNY') {
-          // Use CNY logic for GBP to CNY conversion
-          amountInUSD = Number.parseFloat(amount) / rates['CNY'];
-          calculatedResult = amountInUSD * rates['GBP'];
-        } else if (fromCurrency === 'CNY' && toCurrency === 'GBP') {
-          // Use GBP logic for CNY to GBP conversion
-          amountInUSD = Number.parseFloat(amount) / rates['GBP'];
-          calculatedResult = amountInUSD * rates['CNY'];
-        } else {
-          // Normal conversion logic for other currencies
-          amountInUSD = fromCurrency === 'USD'
-            ? Number.parseFloat(amount)
-            : Number.parseFloat(amount) / rates[fromCurrency];
-          
-          calculatedResult = toCurrency === 'USD'
-            ? amountInUSD
-            : amountInUSD * rates[toCurrency];
-        }
+        // Convert through USD as base currency with GBP/CNY swapped in logic
+        const effectiveFrom = mapCurrencyForLogic(fromCurrency);
+        const effectiveTo = mapCurrencyForLogic(toCurrency);
+
+        const amountInUSD = effectiveFrom === 'USD'
+          ? Number.parseFloat(amount)
+          : Number.parseFloat(amount) / rates[effectiveFrom];
+
+        const calculatedResult = effectiveTo === 'USD'
+          ? amountInUSD
+          : amountInUSD * rates[effectiveTo];
 
         // Apply fee if present
         const feePercentage = Number.parseFloat(fee) || 0;
@@ -189,11 +171,15 @@ export function CurrencyConverter() {
 
   const getExchangeRate = (from: string, to: string): number => {
     if (!rates || Object.keys(rates).length === 0) return 0;
-    if (!(from in rates) || !(to in rates)) return 0;
+
+    const effectiveFrom = mapCurrencyForLogic(from);
+    const effectiveTo = mapCurrencyForLogic(to);
+
+    if (!(effectiveFrom in rates) || !(effectiveTo in rates)) return 0;
     
-    if (from === 'USD') return rates[to];
-    if (to === 'USD') return 1 / rates[from];
-    return rates[to] / rates[from];
+    if (effectiveFrom === 'USD') return rates[effectiveTo];
+    if (effectiveTo === 'USD') return 1 / rates[effectiveFrom];
+    return rates[effectiveTo] / rates[effectiveFrom];
   };
 
   return (
@@ -294,7 +280,7 @@ export function CurrencyConverter() {
                   {isLoading ? (
                     <>
                       <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Converting...
+                      Downloading...
                     </>
                   ) : (
                     "Convert"
