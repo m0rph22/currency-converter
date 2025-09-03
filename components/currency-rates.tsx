@@ -68,7 +68,7 @@ export function CurrencyRates({ onSelectCurrencyPair }: CurrencyRatesProps) {
     
     // Hardcode USD/CZK to a fixed value
     if (from === "USD" && to === "CZK") {
-      return 2.423;
+      return 10.9911;
     }
     
     
@@ -121,12 +121,12 @@ export function CurrencyRates({ onSelectCurrencyPair }: CurrencyRatesProps) {
                 {popularPairs.map((pair, index) => {
                   const rate = calculateRate(pair.from, pair.to);
                   const change = calculateChange(pair.from, pair.to);
-                  
+                  const displayFrom = pair.from === "USD" && pair.to === "CZK" ? "EUR" : pair.from;
                   return (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="font-medium">
-                          {pair.from}/{pair.to}
+                          {displayFrom}/{pair.to}
                         </div>
                       </div>
                       <div className="flex items-center">

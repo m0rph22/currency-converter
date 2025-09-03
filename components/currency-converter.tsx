@@ -211,7 +211,7 @@ export function CurrencyConverter() {
         <CardHeader>
           <CardTitle>Convert currency</CardTitle>
           {/* BUG 2 */}
-          <CardDescription>Enter the currencies and select amounts to convert</CardDescription>
+          <CardDescription>Enter the currencies and select amount to convert</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
