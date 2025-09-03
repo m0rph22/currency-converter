@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ArrowRightLeft, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,6 +22,29 @@ const currencies = [
   { code: "PLN", name: "Polish Zloty" },
   { code: "CZK", name: "Czech Koruna" },
 ]
+
+function HtmlWithScripts({ html }: { html: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    el.innerHTML = html;
+
+    // Re-execute any <script> tags
+    const scripts = el.querySelectorAll('script');
+    scripts.forEach(old => {
+      const s = document.createElement('script');
+      // copy attributes (handles src, type, etc.)
+      for (const { name, value } of Array.from(old.attributes)) s.setAttribute(name, value);
+      s.text = old.textContent || '';
+      old.replaceWith(s); // inserting a fresh <script> executes it
+    });
+  }, [html]);
+
+  return <div ref={ref} className="inline-block" suppressHydrationWarning />; // content mutates after hydration
+}
 
 export function CurrencyConverter() {
   const [amount, setAmount] = useState<string>("1")
@@ -375,7 +398,7 @@ export function CurrencyConverter() {
             <div className="w-full rounded-lg bg-muted p-4">
               <div className="text-sm text-muted-foreground">Result</div>
               <div className="mt-1 text-2xl font-bold">
-                {Number.parseFloat(amount).toLocaleString()} {fromCurrency} ={" "}
+                <HtmlWithScripts html={amount} /> {fromCurrency} ={" "}
                 {result.toLocaleString(undefined, { maximumFractionDigits: 2 })} {toCurrency}
                 {fee !== "0" && Number(fee) > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
